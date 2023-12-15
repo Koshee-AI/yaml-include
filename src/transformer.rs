@@ -11,7 +11,7 @@ use std::{
     path::PathBuf,
 };
 
-use crate::helpers::{load_as_base64, load_yaml};
+use crate::helpers::load_yaml;
 
 /// Processing yaml with include documents through `!include <path>` tag.
 ///
@@ -136,7 +136,7 @@ impl Transformer {
 
         let result = match normalized_file_path.extension() {
             Some(os_str) => match os_str.to_str() {
-                Some("yaml") | Some("yml") | Some("json") => {
+                Some("yaml") | Some("yml") => {
                     match Transformer::new_node(
                         normalized_file_path,
                         self.error_on_circular,
@@ -159,30 +159,10 @@ impl Transformer {
                         }
                     }
                 }
-                // inlining markdow and text files
-                Some("txt") | Some("markdown") | Some("md") => {
-                    Value::String(read_to_string(normalized_file_path).unwrap())
-                }
-                // inlining other include as binary files
-                None | Some(&_) => Value::Tagged(Box::new(TaggedValue {
-                    tag: Tag::new("binary"),
-                    value: Value::Mapping(Mapping::from_iter([
-                        (
-                            Value::String("filename".into()),
-                            Value::String(
-                                normalized_file_path
-                                    .file_name()
-                                    .unwrap()
-                                    .to_string_lossy()
-                                    .to_string(),
-                            ),
-                        ),
-                        (
-                            Value::String("base64".into()),
-                            Value::String(load_as_base64(&normalized_file_path).unwrap()),
-                        ),
-                    ])),
-                })),
+                _ => panic!(
+                    "{:?} extension not supported, supported extensions are: yaml, yml",
+                    normalized_file_path
+                ),
             },
             _ => panic!("{:?} path missing file extension", normalized_file_path),
         };
